@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GEOINT // Global Intelligence Dashboard</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#030b14;--surface:#050e1a;--border:#0d2035;
+  --amber:#f59e0b;--cyan:#22d3ee;--green:#10b981;
+  --red:#ef4444;--purple:#a78bfa;--orange:#f97316;
+  --text:#7a9bbf;--bright:#c8dff0;
+  --mono:'Share Tech Mono','Courier New',monospace;
+  --ui:'Rajdhani',sans-serif;
+}
+body{font-family:var(--mono);background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+
+/* HEADER */
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:0 16px;height:42px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;z-index:1000;}
+.hdr-l{display:flex;align-items:center;gap:12px;}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:pulse 2.5s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
+.logo{font-family:var(--ui);font-weight:700;font-size:13px;letter-spacing:3px;color:var(--cyan);text-transform:uppercase;}
+.logo em{color:var(--amber);font-style:normal;}
+.badge{font-size:9px;padding:2px 6px;border:1px solid var(--border);color:#2a5070;letter-spacing:1px;}
+.hdr-r{display:flex;gap:20px;align-items:center;}
+.hs{display:flex;flex-direction:column;align-items:flex-end;}
+.hs-l{font-size:8px;color:#2a5070;letter-spacing:1.5px;text-transform:uppercase;}
+.hs-v{font-size:12px;color:var(--amber);}
+
+/* MAIN */
+.main{display:flex;flex:1;overflow:hidden;}
+
+/* LEFT PANEL */
+.lp{width:210px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0;}
+.ps{border-bottom:1px solid var(--border);padding:10px 12px;}
+.pt{font-family:var(--ui);font-weight:600;font-size:9px;letter-spacing:2px;color:#2a5070;text-transform:uppercase;margin-bottom:8px;}
+
+.lr{display:flex;align-items:center;gap:7px;padding:5px 0;cursor:pointer;font-size:11px;color:var(--text);transition:color .2s;}
+.lr:hover{color:var(--bright);}
+.ld{width:9px;height:9px;border-radius:2px;flex-shrink:0;}
+.sw{margin-left:auto;width:26px;height:13px;border-radius:7px;border:1px solid #0d2035;background:#060f1a;position:relative;cursor:pointer;transition:border-color .2s;}
+.sw.on{border-color:var(--cyan);}
+.sw-k{width:9px;height:9px;border-radius:50%;background:#1e3a5f;position:absolute;top:1px;left:1px;transition:all .2s;}
+.sw.on .sw-k{left:14px;background:var(--cyan);}
+
+.leg{display:flex;align-items:center;gap:7px;padding:3px 0;font-size:10px;}
+.ld-sm{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+
+.rr{display:flex;align-items:center;gap:5px;padding:4px 0;border-bottom:1px solid #050d19;font-size:10px;}
+.rbw{width:44px;height:3px;background:#060f1a;border-radius:2px;overflow:hidden;}
+.rb{height:100%;border-radius:2px;}
+
+.cat-btns{display:flex;gap:4px;flex-wrap:wrap;}
+.cb{font-family:var(--mono);font-size:9px;padding:3px 7px;border:1px solid var(--border);background:transparent;color:#2a5070;cursor:pointer;letter-spacing:.5px;transition:all .2s;}
+.cb.act{border-color:var(--cyan);color:var(--cyan);background:rgba(34,211,238,.06);}
+
+.vb{display:block;width:100%;background:transparent;border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:10px;padding:5px 8px;cursor:pointer;text-align:left;transition:all .2s;margin-bottom:4px;}
+.vb:hover{border-color:var(--cyan);color:var(--cyan);}
+
+/* MAP */
+#map{flex:1;z-index:1;}
+.leaflet-container{background:#010812 !important;}
+.sc-tip{background:var(--surface) !important;border:1px solid var(--border) !important;border-radius:3px !important;color:var(--bright) !important;font-family:var(--mono) !important;font-size:11px !important;padding:6px 10px !important;box-shadow:0 4px 16px rgba(0,0,0,.6) !important;}
+
+/* RIGHT PANEL */
+.rp{width:300px;background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;}
+.rp-h{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;}
+.rp-t{font-family:var(--ui);font-weight:700;font-size:10px;letter-spacing:2px;color:var(--cyan);text-transform:uppercase;}
+.rp-b{flex:1;overflow-y:auto;padding:14px;}
+
+.es{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;gap:10px;}
+.es-icon{font-size:36px;color:#1a3352;}
+.es-txt{font-size:10px;line-height:1.7;max-width:180px;color:#1e3a5f;}
+
+.nc{display:none;}
+.nc.show{display:block;}
+.ttag{display:inline-block;font-size:8px;padding:2px 7px;border-radius:2px;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;}
+.nn{font-family:var(--ui);font-weight:700;font-size:17px;color:var(--bright);margin-bottom:3px;line-height:1.2;}
+.nco{font-size:10px;margin-bottom:12px;letter-spacing:1px;}
+.nm{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px;}
+.mi{background:#040b15;border:1px solid var(--border);padding:7px 8px;border-radius:2px;}
+.mi.full{grid-column:1/-1;}
+.ml{font-size:8px;color:#2a5070;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;}
+.mv{font-size:11px;color:var(--bright);line-height:1.4;}
+
+.aib{width:100%;padding:9px;background:transparent;border:1px solid var(--cyan);color:var(--cyan);font-family:var(--mono);font-size:10px;letter-spacing:1px;cursor:pointer;text-transform:uppercase;transition:all .2s;border-radius:2px;}
+.aib:hover{background:rgba(34,211,238,.07);}
+.aib:disabled{border-color:#0d2035;color:#1e3a5f;cursor:not-allowed;background:transparent;}
+.ail{display:none;font-size:10px;color:var(--cyan);padding:10px 0;letter-spacing:1px;animation:blink 1.2s infinite;}
+.ail.show{display:block;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.aio{display:none;margin-top:10px;font-size:10.5px;line-height:1.75;color:var(--text);border-top:1px solid var(--border);padding-top:10px;}
+.aio.show{display:block;}
+.aio p{margin-bottom:8px;}
+
+/* TICKER */
+.tkr{height:26px;background:#020810;border-top:1px solid var(--border);display:flex;align-items:center;overflow:hidden;flex-shrink:0;}
+.tkr-l{padding:0 12px;font-size:8px;letter-spacing:2px;color:var(--amber);text-transform:uppercase;border-right:1px solid var(--border);height:100%;display:flex;align-items:center;white-space:nowrap;flex-shrink:0;}
+.tkr-tr{overflow:hidden;flex:1;position:relative;height:100%;}
+.tkr-in{white-space:nowrap;animation:scroll 100s linear infinite;font-size:10px;color:var(--text);height:100%;display:flex;align-items:center;position:absolute;}
+@keyframes scroll{from{transform:translateX(100vw)}to{transform:translateX(-100%)}}
+.ts{margin:0 16px;color:#0d2035;}
+
+::-webkit-scrollbar{width:3px;}
+::-webkit-scrollbar-thumb{background:#0d2035;border-radius:2px;}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-l">
+    <div class="dot"></div>
+    <div class="logo">GEOINT <em>//</em> Global Intelligence Dashboard</div>
+    <div class="badge">UNCLASSIFIED · DEMO</div>
+  </div>
+  <div class="hdr-r">
+    <div class="hs"><div class="hs-l">SC Nodes</div><div class="hs-v">12</div></div>
+    <div class="hs"><div class="hs-l">Conflicts</div><div class="hs-v" style="color:var(--red)" id="h-conf">7</div></div>
+    <div class="hs"><div class="hs-l">Policy Events</div><div class="hs-v" style="color:var(--amber)">13</div></div>
+    <div class="hs"><div class="hs-l">UTC</div><div class="hs-v" style="color:var(--bright)" id="clock">—</div></div>
+  </div>
+</div>
+
+<div class="main">
+
+  <div class="lp">
+
+    <div class="ps">
+      <div class="pt">Map Layers</div>
+      <div class="lr" onclick="toggleLayer('chor')">
+        <div class="ld" style="background:linear-gradient(90deg,#ef4444,#f59e0b,#10b981)"></div>
+        <span>Risk Choropleth</span>
+        <div class="sw on" id="sw-chor"><div class="sw-k"></div></div>
+      </div>
+      <div class="lr" onclick="toggleLayer('nodes')">
+        <div class="ld" style="background:var(--cyan)"></div>
+        <span>SC Nodes</span>
+        <div class="sw on" id="sw-nodes"><div class="sw-k"></div></div>
+      </div>
+      <div class="lr" onclick="toggleLayer('routes')">
+        <div class="ld" style="background:var(--amber)"></div>
+        <span>Supply Routes</span>
+        <div class="sw on" id="sw-routes"><div class="sw-k"></div></div>
+      </div>
+      <div class="lr" onclick="toggleLayer('events')">
+        <div class="ld" style="background:var(--red)"></div>
+        <span>Events</span>
+        <div class="sw on" id="sw-events"><div class="sw-k"></div></div>
+      </div>
+    </div>
+
+    <div class="ps">
+      <div class="pt">Event Filter</div>
+      <div class="cat-btns">
+        <button class="cb act" onclick="filterEvts('ALL',this)">ALL</button>
+        <button class="cb" onclick="filterEvts('SC',this)">SC</button>
+        <button class="cb" onclick="filterEvts('CONFLICT',this)">CONFLICT</button>
+        <button class="cb" onclick="filterEvts('POLICY',this)">POLICY</button>
+      </div>
+    </div>
+
+    <div class="ps">
+      <div class="pt">Node Type</div>
+      <div class="leg"><div class="ld-sm" style="background:var(--cyan)"></div>Fab / Foundry</div>
+      <div class="leg"><div class="ld-sm" style="background:var(--purple)"></div>Memory</div>
+      <div class="leg"><div class="ld-sm" style="background:var(--amber)"></div>Equipment</div>
+      <div class="leg"><div class="ld-sm" style="background:var(--green)"></div>Design / IP</div>
+      <div class="leg"><div class="ld-sm" style="background:var(--orange)"></div>Materials</div>
+      <div class="leg"><div class="ld-sm" style="background:#94a3b8"></div>Research</div>
+      <div class="leg" style="margin-top:6px">
+        <div style="width:9px;height:9px;background:var(--red);transform:rotate(45deg);flex-shrink:0;border-radius:1px"></div>Event Marker
+      </div>
+    </div>
+
+    <div class="ps">
+      <div class="pt">Risk Scale</div>
+      <div class="leg"><div style="width:12px;height:5px;background:#ef4444;border-radius:1px;flex-shrink:0"></div>Critical (8–10)</div>
+      <div class="leg"><div style="width:12px;height:5px;background:#f97316;border-radius:1px;flex-shrink:0"></div>High (6–8)</div>
+      <div class="leg"><div style="width:12px;height:5px;background:#f59e0b;border-radius:1px;flex-shrink:0"></div>Medium (4–6)</div>
+      <div class="leg"><div style="width:12px;height:5px;background:#10b981;border-radius:1px;flex-shrink:0"></div>Low (&lt;4)</div>
+    </div>
+
+    <div class="ps">
+      <div class="pt">Political Risk Index</div>
+      <div id="risk-list"></div>
+    </div>
+
+    <div class="ps" style="flex:1">
+      <div class="pt">Focus View</div>
+      <button class="vb" onclick="fly(25,121,6)">▸ Taiwan Strait</button>
+      <button class="vb" onclick="fly(36,128,5)">▸ NE Asia Hub</button>
+      <button class="vb" onclick="fly(51,6,5)">▸ Europe / ASML</button>
+      <button class="vb" onclick="fly(37,-108,4)">▸ North America</button>
+      <button class="vb" onclick="fly(22,40,4)">▸ Middle East</button>
+      <button class="vb" onclick="fly(50,30,5)">▸ Eastern Europe</button>
+      <button class="vb" onclick="fly(25,80,2.5)">▸ Global</button>
+    </div>
+
+  </div>
+
+  <div id="map"></div>
+
+  <div class="rp">
+    <div class="rp-h">
+      <div class="rp-t">// Intelligence Feed</div>
+      <div style="font-size:8px;color:var(--cyan);letter-spacing:1px">AI · CLAUDE</div>
+    </div>
+    <div class="rp-b">
+      <div class="es" id="es">
+        <div class="es-icon">◎</div>
+        <div class="es-txt">Click any node, event marker, or coloured country to generate an AI intelligence brief</div>
+      </div>
+      <div class="nc" id="nc">
+        <div class="ttag" id="ntag"></div>
+        <div class="nn" id="nname"></div>
+        <div class="nco" id="nco"></div>
+        <div class="nm" id="nm"></div>
+        <button class="aib" id="aib" onclick="runAI()">▶ Generate Intelligence Brief</button>
+        <div class="ail" id="ail">QUERYING CLAUDE API ...</div>
+        <div class="aio" id="aio"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="tkr">
+  <div class="tkr-l">Intel Feed</div>
+  <div class="tkr-tr"><div class="tkr-in" id="ticker">Loading intelligence feed ...</div></div>
+</div>
+
+<script>
+// ═══════════════════════════
+// DATA
+// ═══════════════════════════
+
+const NODES=[
+  {id:1, name:"TSMC",             lat:24.78, lon:120.97,type:"fab",      country:"Taiwan",     chips:"3nm / 2nm",      role:"World's leading-edge logic foundry; sole sub-5nm supplier for Apple, Nvidia, AMD",           tier:1},
+  {id:2, name:"Samsung Foundry",  lat:37.27, lon:127.04,type:"fab",      country:"S. Korea",   chips:"3nm GAA / 4nm",  role:"TSMC's primary rival; GAA transistor architecture leader; logic + memory integration",         tier:1},
+  {id:3, name:"SK Hynix",         lat:37.41, lon:127.22,type:"memory",   country:"S. Korea",   chips:"HBM3E / LPDDR5", role:"Dominant HBM supplier (>50% share); critical for all Nvidia AI accelerator builds",           tier:1},
+  {id:4, name:"ASML",             lat:51.41, lon:5.46,  type:"equipment",country:"Netherlands",chips:"EUV / High-NA",  role:"Sole global EUV lithography supplier; chokepoint for all sub-7nm production worldwide",       tier:1},
+  {id:5, name:"SMIC",             lat:31.23, lon:121.47,type:"fab",      country:"China",      chips:"7nm equiv.",     role:"China's most advanced foundry; multi-patterning workaround under US export control limits",    tier:2},
+  {id:6, name:"Intel Fab 52/62",  lat:33.42, lon:-111.9,type:"fab",      country:"USA",        chips:"Intel 18A",      role:"CHIPS Act anchor investment; Gate-All-Around RibbonFET process leadership bid",                tier:1},
+  {id:7, name:"NVIDIA HQ",        lat:37.37, lon:-121.9,type:"design",   country:"USA",        chips:"H100 / GB200",   role:"AI accelerator market leader (>80% GPU share); fab-less model entirely TSMC-dependent",       tier:1},
+  {id:8, name:"Tokyo Electron",   lat:35.68, lon:139.76,type:"equipment",country:"Japan",      chips:"Etch / CVD",     role:"#2 global semiconductor equipment maker; aligned with US-NL export restrictions",             tier:1},
+  {id:9, name:"Shin-Etsu/SUMCO",  lat:34.69, lon:135.50,type:"materials",country:"Japan",      chips:"300mm wafers",   role:"~60% global silicon wafer supply; upstream chokepoint for entire semiconductor stack",        tier:1},
+  {id:10,name:"IMEC",             lat:50.87, lon:4.70,  type:"research", country:"Belgium",    chips:"Sub-2nm R&D",    role:"Pre-competitive process R&D hub; roadmap partner for TSMC, Intel, Samsung, ASML",            tier:1},
+  {id:11,name:"Micron Technology",lat:43.62, lon:-116.2,type:"memory",   country:"USA",        chips:"DRAM / NAND",    role:"Only US DRAM producer; CHIPS Act recipient; banned from Chinese critical infrastructure",      tier:1},
+  {id:12,name:"Qualcomm",         lat:32.90, lon:-117.2,type:"design",   country:"USA",        chips:"Snapdragon / X", role:"Mobile AP + 5G modem market leader; fab-less model; significant China revenue exposure",     tier:1},
+];
+
+const TC={fab:"#22d3ee",memory:"#a78bfa",equipment:"#f59e0b",design:"#10b981",materials:"#f97316",research:"#94a3b8"};
+
+const RISK=[
+  {c:"Taiwan",s:8.5,t:"↑"},{c:"N. Korea",s:8.2,t:"→"},{c:"Russia",s:7.9,t:"→"},
+  {c:"China",s:7.2,t:"→"},{c:"Iran",s:6.8,t:"↑"},{c:"S. Korea",s:4.8,t:"↓"},
+  {c:"Netherlands",s:3.5,t:"↑"},{c:"Japan",s:3.0,t:"→"},{c:"USA",s:2.8,t:"→"},
+];
+
+// ISO numeric → risk score
+const ISO_R={
+  158:8.5,// Taiwan
+  156:7.2,// China
+  643:7.9,// Russia
+  408:8.2,// North Korea
+  364:6.8,// Iran
+  410:4.8,// S. Korea
+  528:3.5,// Netherlands
+  392:3.0,// Japan
+  840:2.8,// USA
+  804:8.5,// Ukraine
+  887:7.0,// Yemen
+  760:6.5,// Syria
+  104:5.5,// Myanmar
+  356:5.5,// India
+  586:6.0,// Pakistan
+  818:5.0,// Egypt
+  682:4.5,// Saudi Arabia
+  368:6.0,// Iraq
+};
+
+const ISO_N={
+  158:"Taiwan",156:"China",643:"Russia",408:"North Korea",
+  364:"Iran",410:"South Korea",528:"Netherlands",392:"Japan",
+  840:"United States",804:"Ukraine",887:"Yemen",760:"Syria",
+  104:"Myanmar",356:"India",586:"Pakistan",818:"Egypt",
+  682:"Saudi Arabia",368:"Iraq",
+};
+
+const ROUTES=[
+  [[51.41,5.46],[24.78,120.97]],
+  [[24.78,120.97],[37.37,-121.9]],
+  [[35.68,139.76],[24.78,120.97]],
+  [[35.68,139.76],[37.27,127.04]],
+  [[37.41,127.22],[37.37,-121.9]],
+  [[34.69,135.50],[24.78,120.97]],
+];
+
+const ALL_EVENTS=[
+  // SC
+  {lat:25.0, lon:121.5, label:"Taiwan Strait Flashpoint",    desc:"PLA exercises threaten ~90% of sub-3nm global production. Single most critical SC chokepoint.",                   color:"#ef4444",cat:"SC"},
+  {lat:51.5, lon:5.5,   label:"ASML Export Controls",        desc:"US-NL-JP trilateral restricts EUV and advanced DUV to China. Permanent technology-denial strategy.",              color:"#ef4444",cat:"SC"},
+  {lat:35.8, lon:142.0, label:"Japan Export Restrictions",   desc:"Tokyo restricts 23 chipmaking equipment categories, aligning with US BIS controls on China.",                     color:"#f59e0b",cat:"SC"},
+  {lat:37.3, lon:129.5, label:"CHIPS Guardrails (Korea)",    desc:"Samsung/SK Hynix face 10-year China fab capacity limits as condition of US CHIPS Act funding.",                   color:"#f59e0b",cat:"SC"},
+  {lat:31.5, lon:118.0, label:"Huawei / Entity List",        desc:"US BIS Entity List + chip embargo forces Huawei to SMIC DUV multi-patterning for Kirin 9000s.",                  color:"#ef4444",cat:"SC"},
+  {lat:33.42,lon:-111.9,label:"US CHIPS & Science Act",      desc:"$52.7B anchoring TSMC Arizona, Intel Ohio, Samsung Texas. Reshoring America's semiconductor base.",               color:"#10b981",cat:"SC"},
+  {lat:52.0, lon:10.0,  label:"EU Chips Act",                desc:"€43B targeting 20% global share by 2030. TSMC Dresden, Intel Magdeburg as anchor investments.",                  color:"#10b981",cat:"SC"},
+  {lat:43.62,lon:-116.0,label:"Micron China Ban",            desc:"China bans Micron from critical infrastructure (2023), deepening memory supply chain fragmentation.",             color:"#ef4444",cat:"SC"},
+  // CONFLICT
+  {lat:49.5, lon:32.0,  label:"Russia–Ukraine War",          desc:"Large-scale conventional warfare since Feb 2022. NATO eastern flank mobilising. Energy and grain supply disrupted.",color:"#ef4444",cat:"CONFLICT"},
+  {lat:31.5, lon:34.5,  label:"Gaza Conflict",               desc:"Israeli military operations post-Oct 7 2023. Regional escalation risk via Hezbollah, Iran proxies persists.",    color:"#ef4444",cat:"CONFLICT"},
+  {lat:15.0, lon:44.0,  label:"Yemen / Houthi Attacks",      desc:"Houthi Red Sea shipping attacks disrupting ~15% of global trade. Container and oil tanker strikes ongoing.",    color:"#ef4444",cat:"CONFLICT"},
+  {lat:12.0, lon:109.0, label:"South China Sea",             desc:"PLA Navy patrols, Philippines standoffs. China coast guard water cannon incidents at Scarborough Shoal.",        color:"#f59e0b",cat:"CONFLICT"},
+  {lat:40.2, lon:128.0, label:"DPRK Missile Program",        desc:"North Korea ICBM/SLBM tests continue. Russia-DPRK military cooperation deepens. Nuclear posture escalating.",    color:"#ef4444",cat:"CONFLICT"},
+  {lat:35.5, lon:36.5,  label:"Syria Fragmentation",         desc:"Post-Assad collapse. HTS, Turkish-backed factions, SDF control fragmented territory. Israeli strikes on assets.",color:"#f59e0b",cat:"CONFLICT"},
+  {lat:14.0, lon:30.0,  label:"Sudan Civil War",             desc:"RSF vs SAF conflict since Apr 2023. Over 10M displaced. Chokepoint risk for Nile corridor and Horn of Africa.",  color:"#ef4444",cat:"CONFLICT"},
+  // POLICY
+  {lat:39.9, lon:116.4, label:"China Chip Indigenization",   desc:"CXMT, YMTC, Hua Hong pushed by state funding to close gap in DRAM, NAND, advanced logic under embargo.",        color:"#f59e0b",cat:"POLICY"},
+  {lat:38.9, lon:-77.0, label:"US Export Control Regime",    desc:"BIS expands AI chip controls (A100/H100). Foreign Direct Product Rule extends extraterritorial reach to allies.", color:"#f59e0b",cat:"POLICY"},
+  {lat:35.7, lon:51.4,  label:"Iran Nuclear Program",        desc:"JCPOA breakdown. IAEA reports 60% enrichment. Israeli strike scenario on Natanz/Fordow remains credible.",       color:"#ef4444",cat:"POLICY"},
+  {lat:55.7, lon:37.6,  label:"Russia Sanctions Regime",     desc:"G7 oil price cap, SWIFT exclusion, tech export bans. Russia-China economic pivot accelerating.",                color:"#f59e0b",cat:"POLICY"},
+  {lat:28.6, lon:77.2,  label:"India–China LAC Tension",     desc:"Line of Actual Control standoffs post-Galwan. India semiconductor FDI push and China decoupling accelerate.",  color:"#f59e0b",cat:"POLICY"},
+];
+
+const STATIC_TICKERS=[
+  "TSMC Arizona Fab 21 (2nm) on track for 2026 production · CHIPS Act milestone achieved",
+  "ASML High-NA EUV delivery timelines to Intel and Samsung slipping into 2025–26",
+  "SMIC reportedly achieves 5nm-equivalent via DUV multi-patterning for Huawei Kirin",
+  "Nvidia GB200 demand exceeds SK Hynix HBM3E production capacity through mid-2025",
+  "Japan tightens export controls — 23 additional chipmaking equipment categories restricted",
+  "Russia-Ukraine: 1,200+ days of conventional warfare; NATO Article 5 contingency planning active",
+  "Houthi Red Sea attacks: 12% rerouting to Cape of Good Hope adding 10–14 days shipping time",
+  "Samsung Foundry 2nm GAA risk production commenced Q2 2025 at Hwaseong fab",
+  "US Commerce Dept expands Entity List: 43 additional Chinese semiconductor firms targeted",
+  "TSMC H1 2025 revenue +38% YoY driven by AI accelerator demand from Nvidia and Apple",
+  "North Korea test-fires Hwasong-19 ICBM; analysts assess range covers continental USA",
+  "IMEC announces 1.4nm process node roadmap in partnership with TSMC and ASML",
+  "EU Chips Act: Intel Magdeburg delayed to 2026 due to subsidy negotiations",
+  "China CXMT achieves DDR5 DRAM milestone; Pentagon monitors dual-use risk escalation",
+];
+
+// ═══════════════════════════
+// MAP INIT
+// ═══════════════════════════
+
+const map=L.map('map',{center:[28,100],zoom:3,zoomControl:false,attributionControl:false});
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:18}).addTo(map);
+L.control.zoom({position:'bottomright'}).addTo(map);
+
+const LG={chor:L.layerGroup(),nodes:L.layerGroup(),routes:L.layerGroup(),events:L.layerGroup()};
+const LO={chor:true,nodes:true,routes:true,events:true};
+Object.values(LG).forEach(l=>l.addTo(map));
+
+// ── World Choropleth (TopoJSON) ──
+async function loadChoropleth(){
+  try{
+    const res=await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json');
+    const world=await res.json();
+    const countries=topojson.feature(world,world.objects.countries);
+    L.geoJSON(countries,{
+      style:f=>{
+        const s=ISO_R[parseInt(f.id)]||0;
+        const fill=s>=8?'#ef4444':s>=6?'#f97316':s>=4?'#f59e0b':s>=2?'#10b981':'transparent';
+        return{fillColor:fill,fillOpacity:s>0?.2:0,color:'#0d2035',weight:.5,opacity:.5};
+      },
+      onEachFeature:(f,layer)=>{
+        const id=parseInt(f.id);
+        const s=ISO_R[id];
+        if(s){
+          layer.on('click',e=>{L.DomEvent.stopPropagation(e);showCountry(id,s);});
+          layer.on('mouseover',function(){this.setStyle({fillOpacity:.35});});
+          layer.on('mouseout',function(){this.setStyle({fillOpacity:.2});});
+        }
+      }
+    }).addTo(LG.chor);
+  }catch(e){console.warn('Choropleth load failed:',e);}
+}
+loadChoropleth();
+
+// ── Supply Routes ──
+ROUTES.forEach(r=>L.polyline(r,{color:'#f59e0b',weight:1,opacity:.18,dashArray:'5 9'}).addTo(LG.routes));
+
+// ── SC Nodes ──
+NODES.forEach(node=>{
+  const c=TC[node.type]||'#94a3b8';
+  const m=L.circleMarker([node.lat,node.lon],{radius:7,color:c,weight:2,fillColor:c,fillOpacity:.12});
+  m.bindTooltip(
+    `<b style="color:${c}">${node.name}</b><br><span style="color:#7a9bbf;font-size:9px">${node.country} · ${node.type.toUpperCase()}</span>`,
+    {direction:'top',className:'sc-tip',offset:[0,-4]}
+  );
+  m.on('click',()=>showNode(node));
+  m.addTo(LG.nodes);
+});
+
+// ── Events ──
+let activeCat='ALL';
+
+function renderEvents(cat){
+  LG.events.clearLayers();
+  const list=cat==='ALL'?ALL_EVENTS:ALL_EVENTS.filter(e=>e.cat===cat);
+  list.forEach(evt=>{
+    const icon=L.divIcon({
+      html:`<div style="width:11px;height:11px;background:${evt.color};transform:rotate(45deg);opacity:.85;border:1px solid ${evt.color}55;box-shadow:0 0 6px ${evt.color}33"></div>`,
+      iconSize:[11,11],iconAnchor:[5.5,5.5],className:''
+    });
+    const m=L.marker([evt.lat,evt.lon],{icon});
+    m.bindTooltip(
+      `<b style="color:${evt.color}">${evt.label}</b><br><span style="color:#7a9bbf;font-size:9px;display:block;max-width:180px;line-height:1.5">${evt.desc}</span>`,
+      {direction:'top',className:'sc-tip',offset:[0,-6]}
+    );
+    m.on('click',()=>showEvent(evt));
+    m.addTo(LG.events);
+  });
+}
+renderEvents('ALL');
+
+// ═══════════════════════════
+// CONTROLS
+// ═══════════════════════════
+
+function toggleLayer(n){
+  LO[n]=!LO[n];
+  const sw=document.getElementById('sw-'+n);
+  if(LO[n]){map.addLayer(LG[n]);sw.classList.add('on');}
+  else{map.removeLayer(LG[n]);sw.classList.remove('on');}
+}
+
+function filterEvts(cat,btn){
+  activeCat=cat;
+  document.querySelectorAll('.cb').forEach(b=>b.classList.remove('act'));
+  btn.classList.add('act');
+  renderEvents(cat);
+}
+
+function fly(lat,lon,z){map.flyTo([lat,lon],z,{duration:1.6});}
+
+// ═══════════════════════════
+// PANEL
+// ═══════════════════════════
+
+let curPrompt=null;
+
+function openCard(tag,col,name,sub,metaHTML,prompt){
+  curPrompt=prompt;
+  document.getElementById('es').style.display='none';
+  document.getElementById('nc').classList.add('show');
+  const t=document.getElementById('ntag');
+  t.textContent=tag;
+  t.style.cssText=`background:${col}18;color:${col};border:1px solid ${col}30`;
+  document.getElementById('nname').textContent=name;
+  const nco=document.getElementById('nco');
+  nco.textContent=sub; nco.style.color=col;
+  document.getElementById('nm').innerHTML=metaHTML;
+  document.getElementById('aio').classList.remove('show');
+  document.getElementById('aio').innerHTML='';
+  document.getElementById('ail').classList.remove('show');
+  document.getElementById('aib').disabled=false;
+  document.getElementById('aib').textContent='▶ Generate Intelligence Brief';
+}
+
+function showNode(n){
+  const c=TC[n.type]||'#94a3b8';
+  openCard(n.type.toUpperCase(),c,n.name,`▸ ${n.country}  ·  Tier ${n.tier}`,
+    `<div class="mi"><div class="ml">Type</div><div class="mv" style="color:${c}">${n.type}</div></div>
+     <div class="mi"><div class="ml">Process / Product</div><div class="mv">${n.chips}</div></div>
+     <div class="mi full"><div class="ml">Strategic Role</div><div class="mv">${n.role}</div></div>`,
+    `Semiconductor supply chain node: "${n.name}" in ${n.country}. Type: ${n.type}. Product: ${n.chips}. Role: ${n.role}.`
+  );
+}
+
+function showEvent(evt){
+  openCard(evt.cat,evt.color,evt.label,'▸ '+evt.cat+' Event',
+    `<div class="mi full"><div class="ml">Event Summary</div><div class="mv">${evt.desc}</div></div>`,
+    `Geopolitical event: "${evt.label}". Category: ${evt.cat}. Details: ${evt.desc}.`
+  );
+}
+
+function showCountry(id,s){
+  const name=ISO_N[id]||'Country '+id;
+  const col=s>=8?'#ef4444':s>=6?'#f97316':s>=4?'#f59e0b':'#10b981';
+  const label=s>=8?'CRITICAL':s>=6?'HIGH':s>=4?'MEDIUM':'LOW';
+  openCard('COUNTRY PROFILE',col,name,`▸ Political Risk: ${label} (${s}/10)`,
+    `<div class="mi"><div class="ml">Risk Score</div><div class="mv" style="color:${col}">${s} / 10</div></div>
+     <div class="mi"><div class="ml">Risk Level</div><div class="mv" style="color:${col}">${label}</div></div>`,
+    `Country: ${name}. Political risk score: ${s}/10 (${label} risk). Analyse within semiconductor supply chain and US-China tech competition context.`
+  );
+}
+
+// ═══════════════════════════
+// AI ANALYSIS
+// ═══════════════════════════
+
+async function runAI(){
+  if(!curPrompt) return;
+  const btn=document.getElementById('aib');
+  const load=document.getElementById('ail');
+  const out=document.getElementById('aio');
+  btn.disabled=true; btn.textContent='Connecting...';
+  load.classList.add('show');
+  out.classList.remove('show'); out.innerHTML='';
+
+  const prompt=`You are a senior geopolitical analyst specialising in semiconductor supply chains, US-China technology competition, and international political risk.
+
+Context: ${curPrompt}
+
+Produce a concise intelligence brief (under 230 words, plain paragraphs only) covering:
+1. Strategic significance to global semiconductor supply chains
+2. US-China tech competition or broader geopolitical tension angle
+3. Political risk assessment for next 12–24 months (state risk level: Low / Medium / High / Critical)
+4. One critical scenario to monitor
+
+Tone: Senior analyst memo. Specific and data-informed.`;
+
+  try{
+    const res=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,messages:[{role:"user",content:prompt}]})
+    });
+    const data=await res.json();
+    const text=data.content?.[0]?.text||"Analysis unavailable.";
+    load.classList.remove('show');
+    out.innerHTML=text.split('\n').filter(l=>l.trim()).map(p=>`<p>${p}</p>`).join('');
+    out.classList.add('show');
+    btn.textContent='↻ Regenerate Brief'; btn.disabled=false;
+  }catch(e){
+    load.classList.remove('show');
+    out.innerHTML=`<p style="color:var(--red)">Connection error. Please retry.</p>`;
+    out.classList.add('show');
+    btn.disabled=false; btn.textContent='▶ Generate Intelligence Brief';
+  }
+}
+
+// ═══════════════════════════
+// RISK PANEL
+// ═══════════════════════════
+
+const rl=document.getElementById('risk-list');
+RISK.forEach(r=>{
+  const col=r.s>=8?'var(--red)':r.s>=6?'var(--orange)':r.s>=4?'var(--amber)':'var(--green)';
+  rl.innerHTML+=`<div class="rr">
+    <span style="flex:1">${r.c}</span>
+    <span style="font-size:9px;color:#2a5070">${r.t}</span>
+    <div class="rbw"><div class="rb" style="width:${r.s*10}%;background:${col}"></div></div>
+    <span style="font-size:10px;width:24px;text-align:right;color:${col}">${r.s}</span>
+  </div>`;
+});
+
+// ═══════════════════════════
+// TICKER (GDELT + fallback)
+// ═══════════════════════════
+
+async function loadTicker(){
+  let items=[...STATIC_TICKERS];
+  try{
+    const res=await fetch(
+      'https://api.gdeltproject.org/api/v2/doc/doc?query=semiconductor+taiwan+china+geopolitical&mode=artlist&maxrecords=8&format=json&timespan=3d',
+      {signal:AbortSignal.timeout(5000)}
+    );
+    if(res.ok){
+      const data=await res.json();
+      if(data.articles){
+        const live=data.articles.map(a=>`[LIVE] ${a.title}`).filter(Boolean).slice(0,6);
+        items=[...live,...STATIC_TICKERS];
+      }
+    }
+  }catch(e){/* use static */}
+  document.getElementById('ticker').innerHTML=
+    items.map(t=>`<span>${t}</span><span class="ts">◆</span>`).join('');
+}
+loadTicker();
+
+// ═══════════════════════════
+// CLOCK
+// ═══════════════════════════
+
+function tick(){document.getElementById('clock').textContent=new Date().toUTCString().split(' ')[4]+' UTC';}
+tick(); setInterval(tick,1000);
+</script>
+</body>
+</html>
