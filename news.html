@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>半導體地緣觀測站 - 每日新聞</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --panel: #121726;
+    --panel-light: #1a2238;
+    --border: #2a3350;
+    --text: #e2e8f0;
+    --text-dim: #94a3b8;
+    --accent: #60a5fa;
+    --red: #ef4444;
+    --orange: #f97316;
+    --yellow: #eab308;
+    --green: #22c55e;
+    --blue: #3b82f6;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    min-height: 100vh; padding: 24px;
+  }
+  .container { max-width: 1200px; margin: 0 auto; }
+  .header {
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    padding: 28px; border-radius: 16px; margin-bottom: 24px;
+    border: 1px solid var(--border);
+  }
+  .brand { font-size: 12px; opacity: 0.6; letter-spacing: 3px; margin-bottom: 8px; }
+  h1 { font-size: 24px; margin-bottom: 8px; }
+  .meta { font-size: 13px; color: var(--text-dim); }
+  .headline {
+    margin-top: 16px; padding: 14px;
+    background: rgba(255,255,255,0.05); border-radius: 10px;
+    font-size: 14px; line-height: 1.7;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 20px;
+    margin-bottom: 24px;
+  }
+  @media (max-width: 768px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+
+  .panel {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px;
+  }
+  .panel h2 {
+    font-size: 14px; letter-spacing: 1px; color: var(--text-dim);
+    margin-bottom: 16px; text-transform: uppercase;
+  }
+
+  .risk-item { margin-bottom: 14px; }
+  .risk-header {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 13px; margin-bottom: 5px;
+  }
+  .risk-bar {
+    height: 6px; background: #0a0e1a; border-radius: 3px; overflow: hidden;
+  }
+  .risk-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--green), var(--yellow), var(--red));
+    transition: width 0.6s ease;
+  }
+  .risk-reason { font-size: 11px; color: var(--text-dim); margin-top: 3px; }
+
+  .country-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+    gap: 10px;
+  }
+  .country-chip {
+    background: var(--panel-light); padding: 12px; border-radius: 10px;
+    text-align: center; border: 1px solid var(--border);
+  }
+  .country-name { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .country-heat {
+    font-size: 11px; color: var(--text-dim);
+    display: flex; align-items: center; justify-content: center; gap: 4px;
+  }
+
+  .news-item {
+    padding: 16px; background: var(--panel-light); border-radius: 10px;
+    margin-bottom: 12px; border: 1px solid var(--border);
+    transition: border-color 0.2s;
+  }
+  .news-item:hover { border-color: var(--accent); }
+  .news-top {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 10px; margin-bottom: 8px;
+  }
+  .news-title { font-size: 15px; font-weight: 600; line-height: 1.5; flex: 1; }
+  .news-number { color: var(--text-dim); margin-right: 6px; }
+  .category-badge {
+    font-size: 11px; padding: 3px 10px; border-radius: 999px;
+    white-space: nowrap;
+  }
+  .cat-企業動態 { background: #1e3a5f; color: #93c5fd; }
+  .cat-技術突破 { background: #14422f; color: #86efac; }
+  .cat-市場分析 { background: #4a2e0c; color: #fbbf24; }
+  .cat-政策地緣 { background: #4a1f16; color: #fca5a5; }
+  .cat-供應鏈 { background: #2d2559; color: #c4b5fd; }
+  .news-summary { font-size: 13px; color: var(--text-dim); line-height: 1.7; margin-bottom: 10px; }
+  .news-meta {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 11px; color: var(--text-dim);
+    border-top: 1px solid var(--border); padding-top: 8px;
+  }
+  .news-meta a { color: var(--accent); text-decoration: none; }
+  .news-source { font-size: 10px; color: #64748b; margin-top: 4px; }
+  .countries-row { font-size: 10px; margin-top: 4px; }
+  .country-tag {
+    display: inline-block; padding: 1px 6px; background: var(--panel);
+    border-radius: 4px; margin-right: 4px; color: var(--text-dim);
+  }
+
+  .filter-row {
+    display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;
+  }
+  .filter-btn {
+    padding: 6px 14px; background: var(--panel-light);
+    border: 1px solid var(--border); border-radius: 999px;
+    color: var(--text-dim); cursor: pointer; font-size: 12px;
+    transition: all 0.2s;
+  }
+  .filter-btn:hover { color: var(--text); }
+  .filter-btn.active {
+    background: var(--accent); color: white; border-color: var(--accent);
+  }
+
+  .loading, .error {
+    padding: 40px; text-align: center; color: var(--text-dim);
+  }
+
+  .analysis-block {
+    padding-left: 12px; border-left: 3px solid; margin-bottom: 16px;
+  }
+  .analysis-gov { border-color: var(--red); }
+  .analysis-ind { border-color: var(--blue); }
+  .analysis-topic { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+  .analysis-content { font-size: 13px; line-height: 1.7; color: var(--text-dim); margin-bottom: 8px; }
+  .analysis-impl {
+    display: inline-block; font-size: 11px; padding: 4px 9px;
+    border-radius: 5px; background: rgba(255,255,255,0.05);
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="brand">GEOPOLITICAL SEMICONDUCTOR OBSERVATORY</div>
+    <h1>半導體地緣觀測站</h1>
+    <div class="meta" id="meta">載入中...</div>
+    <div class="headline" id="headline">...</div>
+  </div>
+
+  <div class="grid">
+    <div>
+      <div class="panel" style="margin-bottom:20px;">
+        <h2>📊 今日風險指標</h2>
+        <div id="risk-panel"></div>
+      </div>
+      <div class="panel">
+        <h2>🌐 今日國家熱度</h2>
+        <div class="country-grid" id="country-panel"></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="panel" id="analysis-panel" style="display:none;margin-bottom:20px;">
+        <h2>🧠 今日深度分析</h2>
+        <div id="analysis-content"></div>
+      </div>
+
+      <div class="panel">
+        <h2>📰 今日新聞精選</h2>
+        <div class="filter-row" id="filter-row"></div>
+        <div id="news-list"><div class="loading">載入中...</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const DATA_URL = 'data/news.json';
+let allNews = [];
+let currentFilter = '全部';
+
+async function load() {
+  try {
+    const res = await fetch(DATA_URL + '?t=' + Date.now());
+    if (!res.ok) throw new Error('fetch failed');
+    const data = await res.json();
+    render(data);
+  } catch (e) {
+    document.getElementById('news-list').innerHTML =
+      '<div class="error">無法載入資料，可能是今天尚未更新</div>';
+  }
+}
+
+function render(data) {
+  // Meta
+  const d = new Date(data.generated_at);
+  const edition = data.mode === 'evening' ? '🌆 晚間分析版' : '🌅 早晨快訊版';
+  document.getElementById('meta').textContent =
+    d.toLocaleString('zh-TW') + ' · ' + edition;
+  document.getElementById('headline').innerHTML =
+    '📌 <strong>今日重點：</strong>' + (data.headline || '');
+
+  // Risk indicators
+  const riskLabels = {
+    cross_strait: {emoji:'🔴', name:'兩岸衝突'},
+    tech_blockade: {emoji:'🟠', name:'技術封鎖'},
+    supply_chain: {emoji:'🟡', name:'供應鏈韌性'},
+    industry_outlook: {emoji:'🟢', name:'產業景氣'},
+    tech_competition: {emoji:'🔵', name:'技術競爭'}
+  };
+  let riskHtml = '';
+  for (const [key, label] of Object.entries(riskLabels)) {
+    const r = (data.risk_indicators || {})[key] || {};
+    const score = r.score ?? 0;
+    const reason = r.reason ?? '';
+    riskHtml += `
+      <div class="risk-item">
+        <div class="risk-header">
+          <span>${label.emoji} <strong>${label.name}</strong></span>
+          <span>${score}/10</span>
+        </div>
+        <div class="risk-bar"><div class="risk-bar-fill" style="width:${score*10}%"></div></div>
+        <div class="risk-reason">${reason}</div>
+      </div>`;
+  }
+  document.getElementById('risk-panel').innerHTML = riskHtml;
+
+  // Countries
+  const countries = data.hot_countries || [];
+  document.getElementById('country-panel').innerHTML = countries.map(c => `
+    <div class="country-chip">
+      <div class="country-name">${c.name}</div>
+      <div class="country-heat">🔥 ${c.heat}</div>
+    </div>
+  `).join('');
+
+  // Deep analysis (evening only)
+  if (data.mode === 'evening' && data.government_analysis) {
+    document.getElementById('analysis-panel').style.display = 'block';
+    let aHtml = `<div style="padding:12px;background:var(--panel-light);border-radius:8px;margin-bottom:14px;font-size:13px;"><strong>🌡️ 溫度計：</strong>${data.temperature||''}</div>`;
+    aHtml += '<h3 style="font-size:13px;color:var(--text-dim);margin-bottom:10px;">政府動態</h3>';
+    (data.government_analysis||[]).forEach(a => {
+      aHtml += `<div class="analysis-block analysis-gov">
+        <div class="analysis-topic">🏛 ${a.topic}</div>
+        <div class="analysis-content">${a.content}</div>
+        <div class="analysis-impl" style="color:#fca5a5;">💡 ${a.implication}</div>
+      </div>`;
+    });
+    aHtml += '<h3 style="font-size:13px;color:var(--text-dim);margin:16px 0 10px;">產業動態</h3>';
+    (data.industry_analysis||[]).forEach(a => {
+      aHtml += `<div class="analysis-block analysis-ind">
+        <div class="analysis-topic">🏢 ${a.topic}</div>
+        <div class="analysis-content">${a.content}</div>
+        <div class="analysis-impl" style="color:#93c5fd;">💡 ${a.implication}</div>
+      </div>`;
+    });
+    if (data.connection) {
+      aHtml += `<div style="padding:12px;background:var(--panel-light);border-radius:8px;margin-top:14px;font-size:13px;"><strong>🔗 事件連動：</strong>${data.connection}</div>`;
+    }
+    document.getElementById('analysis-content').innerHTML = aHtml;
+  }
+
+  // News
+  allNews = data.news || [];
+  const categories = ['全部', ...new Set(allNews.map(n => n.category))];
+  document.getElementById('filter-row').innerHTML = categories.map(c =>
+    `<button class="filter-btn ${c===currentFilter?'active':''}" onclick="setFilter('${c}')">${c}</button>`
+  ).join('');
+  renderNews();
+}
+
+function setFilter(c) {
+  currentFilter = c;
+  document.querySelectorAll('.filter-btn').forEach(b => {
+    b.classList.toggle('active', b.textContent === c);
+  });
+  renderNews();
+}
+
+function renderNews() {
+  const filtered = currentFilter === '全部' ? allNews : allNews.filter(n => n.category === currentFilter);
+  document.getElementById('news-list').innerHTML = filtered.map((n, i) => `
+    <div class="news-item">
+      <div class="news-top">
+        <div class="news-title"><span class="news-number">#${i+1}</span>${n.title}</div>
+        <span class="category-badge cat-${n.category}">${n.category}</span>
+      </div>
+      <div class="news-summary">${n.summary}</div>
+      <div class="news-meta">
+        <span>💡 ${n.why_important||''}</span>
+        <a href="${n.link}" target="_blank">原文 →</a>
+      </div>
+      <div class="news-source">${n.source}</div>
+      ${(n.countries||[]).length ? '<div class="countries-row">' + n.countries.map(c=>`<span class="country-tag">${c}</span>`).join('') + '</div>' : ''}
+    </div>
+  `).join('');
+}
+
+load();
+setInterval(load, 300000);  // 每 5 分鐘自動重新整理
+</script>
+</body>
+</html>
